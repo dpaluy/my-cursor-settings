@@ -1,0 +1,8 @@
+tmp/*
+*.log
+overmind.sock
+pnpm-lock.yaml
+run-pty.json
+vite.config.ts
+.env*
+node_modules/*
