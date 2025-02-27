@@ -1,0 +1,435 @@
+# Ruby Syntax Guidelines
+
+## Naming Conventions
+- **Methods/Variables**: Use snake_case (e.g., `calculate_total`)
+- **Classes/Modules**: Use CamelCase (e.g., `PaymentProcessor`)
+- **Constants**: Use SCREAMING_SNAKE_CASE (e.g., `MAX_RETRIES = 3`)
+
+## String Handling
+```ruby
+# Bad - concatenation
+name = 'John' + ' ' + 'Doe'
+
+# Good - interpolation
+name = "#{first_name} #{last_name}"
+
+# Only use double quotes when interpolation needed
+path = '/static/images/icon.png'  # Single quotes
+msg = "Welcome #{user.name}!"     # Double quotes
+```
+
+## Modern Hash Syntax
+```ruby
+# Traditional style
+user = { :name => 'David', :age => 35 }
+
+# Preferred modern style
+user = { name: 'David', age: 35 }
+
+# Shorthand syntax when variable matches key
+age = 35
+user = { name: 'David', age: }  # Equivalent to { name: 'David', age: age }
+```
+
+## Method Definitions
+```ruby
+# Basic method structure
+def calculate_total(items)
+  items.sum { |item| item.price * item.quantity }
+end
+
+# With keyword arguments
+def create_user(name:, email:, role: 'user')
+  User.new(name:, email:, role:)
+end
+```
+
+# Rails Architecture Patterns
+
+## Controller Conventions
+```ruby
+# RESTful controller structure
+class UsersController < ApplicationController
+  before_action :set_user, only: [:show, :edit, :update, :destroy]
+
+  # GET /users
+  def index
+    @users = User.all
+  end
+
+  # Strong parameters example
+  private
+
+  def user_params
+    params.require(:user).permit(:name, :email, :password)
+  end
+end
+```
+
+## Model Organization
+```ruby
+# Service object pattern
+class PaymentProcessor
+  def initialize(user)
+    @user = user
+  end
+
+  def process(amount)
+    # Business logic here
+  end
+end
+
+# Concern example
+module Searchable
+  extend ActiveSupport::Concern
+
+  included do
+    scope :search, ->(query) { where("name LIKE ?", "%#{query}%") }
+  end
+end
+```
+
+## View Components
+```erb
+<%# Reusable partial (_form.html.erb) %>
+<%= form_with model: @user do |form| %>
+  <div class="field">
+    <%= form.label :name %>
+    <%= form.text_field :name %>
+  </div>
+<% end %>
+
+<%# Main template using partial %>
+<h1>Edit User</h1>
+<%= render 'form' %>
+```
+
+# Database Design Standards
+
+## Schema Conventions
+```ruby
+# Migration example
+class CreatePosts < ActiveRecord::Migration[7.0]
+  def change
+    create_table :posts do |t|  # Plural table name
+      t.string :title
+      t.text :content
+      t.references :user, null: false, foreign_key: true  # Reference association
+
+      t.timestamps  # Automatic timestamps
+    end
+
+    add_index :posts, :title  # Appropriate indexing
+  end
+end
+```
+
+## Model Structure Guide
+```ruby
+class User < ApplicationRecord
+  # == Constants ============================================================
+  ROLES = %w[admin moderator user].freeze
+
+  # == Associations =========================================================
+  belongs_to :organization
+  has_many :posts, dependent: :destroy
+
+  # == Validations ==========================================================
+  validates :name, presence: true
+  validates :email,
+    presence: true,
+    uniqueness: { case_sensitive: false },
+    format: { with: URI::MailTo::EMAIL_REGEXP }
+
+  # == Scopes ===============================================================
+  scope :active, -> { where(status: 'active') }
+
+  # == Class Methods ========================================================
+  def self.find_by_credentials(credentials)
+    find_by(email: credentials[:email]&.downcase)
+  end
+
+  # == Instance Methods =====================================================
+  def full_name
+    "#{first_name} #{last_name}".strip
+  end
+end
+```
+
+# RSpec Testing Standards
+
+## Test Structure
+```ruby
+# Top-level namespace declaration
+RSpec.describe User::AuthenticationService do
+  # Shared setup using let
+  let(:user) { create(:user) }
+
+  describe '#authenticate' do
+    context 'with valid credentials' do
+      it 'returns the user' do
+        result = described_class.new.authenticate(
+          email: user.email,
+          password: 'password'
+        )
+        expect(result).to eq(user)
+      end
+    end
+
+    context 'with invalid password' do
+      it 'returns nil' do
+        result = described_class.new.authenticate(
+          email: user.email,
+          password: 'wrong'
+        )
+        expect(result).to be_nil
+      end
+    end
+  end
+end
+```
+
+## Best Practices
+1. **FactoryBot Usage**: Prefer traits over conditional logic in factories
+   ```ruby
+   factory :user do
+     name { 'Test User' }
+     email { 'user@example.com' }
+
+     trait :admin do
+       role { 'admin' }
+     end
+   end
+   ```
+
+2. **Test Organization**: Use nested contexts for different scenarios
+3. **Matchers**: Leverage shoulda-matchers for common validations
+   ```ruby
+   describe User do
+     it { should validate_presence_of(:email) }
+     it { should allow_value('user@example.com').for(:email) }
+   end
+   ```
+
+4. **Test Data**: Use Faker for realistic test data
+   ```ruby
+   factory :user do
+     name { Faker::Name.name }
+     email { Faker::Internet.email }
+   end
+   ```
+
+# Example Test Pattern
+TEST_PATTERN: >
+  RSpec.describe User do
+    describe 'validations' do
+      it { should validate_presence_of(:name) }
+      it { should validate_uniqueness_of(:email) }
+    end
+
+    describe '#full_name' do
+      it 'returns the combined first and last name' do
+        user = create(:user, first_name: 'John', last_name: 'Doe')
+        expect(user.full_name).to eq('John Doe')
+      end
+    end
+  end
+
+# API Design Standards
+
+## Response Format
+```json
+{
+  "status": "success",
+  "data": {
+    "id": 1,
+    "type": "user",
+    "attributes": {
+      "name": "David",
+      "email": "david@example.com",
+      "created_at": "2024-02-21T10:00:00Z"
+    },
+    "relationships": {
+      "organization": {
+        "data": { "id": 123, "type": "organization" }
+      }
+    }
+  },
+  "meta": {
+    "timestamp": "2024-11-02T12:00:00Z",
+    "version": "1.0"
+  }
+}
+```
+
+## Error Response Example
+```json
+{
+  "status": "error",
+  "errors": [
+    {
+      "code": "validation_failed",
+      "title": "Invalid Email",
+      "detail": "Email must be a valid format",
+      "source": { "pointer": "/data/attributes/email" }
+    }
+  ]
+}
+```
+
+# Documentation Standards
+
+## Code Comments
+```ruby
+# Good comment example
+def calculate_tax(amount)
+  # Tax calculation follows IRS Rule 86-5 for international transactions
+  # See: https://example.com/tax-rules
+  amount * 0.08 + international_surcharge
+end
+
+# YARD documentation example
+class User
+  # @param [Hash] attributes User properties
+  # @option attributes [String] :email Required email address
+  # @option attributes [Date] :birthdate Optional birthdate
+  # @return [User] initialized user object
+  def initialize(attributes)
+    # ...
+  end
+end
+```
+
+## API Documentation
+```ruby
+# Swagger/OpenAPI annotation example
+swagger_api :create do
+  summary 'Create new user'
+  param :form, :email, :string, :required, 'User email'
+  param :form, :password, :string, :required, 'Account password'
+  response :ok, 'Success', :User
+  response :unprocessable_entity, 'Validation failed'
+end
+```
+
+## Maintenance Rules
+1. Update documentation when:
+   - Adding new features
+   - Changing existing behavior
+   - Deprecating functionality
+2. Verify documentation accuracy during code review
+3. Include troubleshooting examples for common errors
+
+# Security Best Practices
+
+## Core Principles
+```ruby
+# Strong parameters example
+def user_params
+  params.require(:user).permit(:name, :email, :password)
+end
+
+# Authorization check in controller
+def show
+  @user = User.find(params[:id])
+  authorize! :read, @user
+end
+```
+
+## Implementation Checklist
+1. Authentication: Use Devise or JWT tokens
+2. Authorization: Implement Pundit policies
+3. Input Sanitization:
+   ```ruby
+   # Sanitize HTML content
+   sanitized_content = Rails::Html::SafeListSanitizer.new.sanitize(user_input)
+   ```
+4. Mass Assignment Protection: Always use strong params
+5. Regular Security Audits: Use brakeman and bundle-audit
+
+# Performance Optimization
+
+## Database Optimization
+```ruby
+# Bad - N+1 query
+Post.all.each { |post| puts post.user.name }
+
+# Good - Eager loading
+Post.includes(:user).each { |post| puts post.user.name }
+
+# Bulk insert example
+User.insert_all(list_of_user_hashes)
+```
+
+## Caching Strategies
+```ruby
+# Fragment caching
+<% cache @user do %>
+  <%= render @user %>
+<% end %>
+
+# Redis cache example
+Rails.cache.fetch("user_stats/#{user.id}", expires_in: 1.hour) do
+  user.calculate_stats
+end
+```
+
+## Background Jobs
+```ruby
+# Sidekiq worker example
+class NewsletterJob < ApplicationJob
+  queue_as :default
+
+  def perform(user_ids)
+    User.where(id: user_ids).find_each do |user|
+      NewsletterMailer.weekly(user).deliver_later
+    end
+  end
+end
+```
+
+# Git Workflow Standards
+
+## Commit Message Format
+```
+feat(auth): add OAuth2 login support
+
+- Implement Google and GitHub OAuth integration
+- Add OmniAuth configuration
+- Update user model with provider fields
+
+Refs: #123
+```
+
+### Commit Types
+| Type       | Description                          |
+|------------|--------------------------------------|
+| feat       | New feature                          |
+| fix        | Bug fix                              |
+| docs       | Documentation changes                |
+| style      | Code formatting/UI tweaks            |
+| refactor   | Code restructuring                   |
+| test       | Test additions/modifications         |
+| chore      | Maintenance tasks                    |
+
+## Status Documentation
+
+### docs/status.md Template
+```markdown
+## Current Status - [Date]
+
+### Active Tasks
+- [ ] [Task ID] Task description
+  - Last update: [Timestamp]
+  - Next steps: [Brief plan]
+
+### Completed Tasks
+- [x] [Task ID] Completed task description
+  - Completed at: [Timestamp]
+  - Results: [Summary of outcome]
+
+### Blockers
+- [ ] [Blocker description]
+  - Impact: [Affected areas]
+  - Resolution plan: [Proposed solution]
+```
