@@ -1,0 +1,144 @@
+---
+description: Rules to create factories
+globs: spec/**/*.rb
+---
+# Factories
+
+Factory Bot is a library for setting up test data objects in Ruby.
+
+1. Define Your Factory Clearly
+
+- Encapsulation: Always wrap your definitions in a `FactoryBot.define do ... end` block.  
+- Naming Convention: Name each factory after the model it represents so that the factory name and the model are clearly related.  
+- Basic Structure: Use blocks to assign default values. For example:
+
+  ```ruby
+  FactoryBot.define do
+    factory :user do
+      first_name { Faker::Name.first_name }
+      last_name  { Faker::Name.last_name  }
+      birthdate  { 21.years.ago }
+      admin { false }
+      
+      sequence(:username) { |n| "user#{n}" }
+    end
+  end
+  ```  
+
+2. Ensure Unique Attributes with Sequences
+
+- Sequence Usage: For attributes that require uniqueness (e.g., usernames or emails), use the `sequence` helper to automatically generate distinct values.  
+- Example:
+
+  ```ruby
+  sequence(:username) { |n| "user#{n}" }
+  ```  
+
+3. Manage Associations Effectively
+
+- Association Declaration: When your model has a relationship (like a post belonging to a user), declare the association within the factory.
+- Syntax Options:  
+  - Explicitly declare using the `association` keyword:  
+    ```ruby
+    factory :post do
+      association :author, factory: :user
+    end
+    ```
+  - Or simply reference the association if a matching factory exists:  
+    ```ruby
+    factory :post do
+      author
+    end
+    ```  
+
+4. Leverage Traits for Variations
+
+- Purpose of Traits: Traits let you group a set of attributes to define a particular variant (for example, an admin user).  
+- Usage:  
+  ```ruby
+  factory :user do
+    trait :admin do
+      admin { true }
+    end
+  end
+  # Creating an admin user:
+  create(:user, :admin)
+  ```  
+
+5. Utilize Nested and Sub-Factories
+
+- Nested Factories: Nesting allows a new factory to inherit attributes from a parent while overriding specific ones.
+- Sub-Factories: Alternatively, declare a sub-factory with the `parent:` option for the same effect.  
+- Example:
+
+  ```ruby
+  factory :user do
+    first_name { 'John' }
+    
+    factory :sample_user do
+      first_name { Faker::Name.first_name }
+    end
+  end
+  # Create a sample user:
+  create(:sample_user)
+  ```  
+
+6. Use Transient Attributes and Callbacks for Flexibility
+
+- Transient Attributes: Define temporary values that are not persisted to the model but can control behavior during object creation.
+- Callbacks: Utilize hooks like `after :create` to modify the object post-creation.  
+- Example:
+
+  ```ruby
+  factory :user do
+    transient do
+      upcased { true }
+    end
+
+    after :create do |user, options|
+      user.name.upcase! if options.upcased
+    end
+  end
+
+  # Create with the transient option:
+  create(:user, upcased: true)
+  ```  
+
+7. Instantiate Objects Using Appropriate Methods
+
+- Non-Persisted vs. Persisted:
+  - `build(:user)` creates a model instance that is not saved.
+  - `create(:user)` creates and saves the instance.
+- Other Helpers:
+  - `attributes_for(:user)` returns a hash of attributes.
+  - `build_stubbed(:user)` creates a stubbed instance that simulates a persisted record.
+  
+8. Create Multiple Instances with List Helpers
+
+- List Creation: Use `create_list` or `build_list` to generate multiple objects at once.
+- Customization: Pass a hash to override defaults if needed:
+  ```ruby
+  create_list(:user, 3)
+  build_list(:user, 3, first_name: 'Alice')
+  ```  
+
+9. Apply Extra Options for Customization
+
+- Custom Class Names: When the factory name differs from the actual model class, specify the class:
+  ```ruby
+  factory :user, class: 'User' do
+    # ...
+  end
+  ```
+- Aliases: Provide alternate names (aliases) for factories if the model might be referred to by multiple roles:
+  ```ruby
+  factory :user, aliases: [:author] do
+    # ...
+  end
+  ```  
+
+10. Use Faker methods
+
+Faker is a library for generating fake data such as names, addresses, and phone numbers.
+
+Reference: https://www.rubydoc.info/gems/faker/Faker

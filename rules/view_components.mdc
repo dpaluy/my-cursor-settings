@@ -1,0 +1,49 @@
+---
+description: ViewComponent Standards
+globs: app/components/**/*.{rb,html.erb}
+---
+## Architecture Overview
+- Hierarchical structure by domain and complexity
+- Chosen over partials for reusability, testability, and performance
+
+## Component Categories
+1. Base Components (atomic UI elements)
+2. Composite Components (complex UI patterns)
+3. Domain Components (business-specific)
+
+## Implementation Strategy
+- Progressive enhancement via ViewComponents and Stimulus
+- Russian Doll caching for nested components
+- Custom cache keys for dynamic content
+
+## Component Organization
+1. One component = one visual element
+2. Use slots for flexible content
+3. Keep templates focused on presentation
+4. Include component preview
+5. Test rendering scenarios
+   
+Example:
+```ruby
+# app/components/card_component.rb
+class CardComponent < ViewComponent::Base
+  renders_one :header
+  renders_one :footer
+  
+  def initialize(title:, variant: :default)
+    @title = title
+    @variant = variant
+  end
+end
+
+# Preview
+class CardComponentPreview < ViewComponent::Preview
+  def default
+    render CardComponent.new(title: "Example") do |card|
+      card.header { "Header" }
+    end
+  end
+end
+
+Reference guides:
+@docs/patterns/view_components.md
