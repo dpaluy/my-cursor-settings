@@ -1,0 +1,94 @@
+---
+description: Defines Persistent Memory Bank for Cursor across sessions.
+globs:
+alwaysApply: true
+---
+
+# Cursor Memory Bank: Core Rules (101)
+
+This rule defines Cursor's Persistent Memory system using a structured file-based approach. The Memory Bank enables Cursor to maintain project continuity across sessions by reading, interpreting, and updating Markdown files that document the full context and state of the project.
+
+**Cursor MUST read all required Memory Bank files at the start of every task.**
+
+---
+
+## Memory Bank Hierarchy
+
+```mermaid
+flowchart TD
+    PRD[@docs/prd.md] --> ARCH[@docs/architecture.md]
+    PRD --> STORIES[@memory-bank/stories.md]
+    PRD --> README[README.md]
+    ARCH --> ACTIVE[@memory-bank/active_context.md]
+    STORIES --> ACTIVE
+    README --> ACTIVE
+    ACTIVE --> ERROR[@memory-bank/error-documentation.mdc]
+    ACTIVE --> LESSONS[@memory-bank/lessons-learned.mdc]
+```
+
+---
+
+Core Files (Required)
+	1.	@docs/prd.md – Product Requirement Document
+	2.	@docs/architecture.md – System Architecture & Design
+	3.	README.md – Project Stack, Setup, Overview
+	4.	@memory-bank/stories.md – Feature/Task Backlog and Progress
+	5.	@memory-bank/active_context.md – Current Development Focus
+	6.	@memory-bank/error-documentation.mdc – Known Errors & Fixes
+	7.	@memory-bank/lessons-learned.mdc – Patterns, Preferences, Project Wisdom
+
+⸻
+
+Context Files (Optional)
+	•	@docs/literature/ – Research or background context (LaTeX files)
+	•	@tasks/rfc/ – Detailed RFCs for individual tasks (LaTeX files)
+
+⸻
+
+Key Principles
+	•	Always-on memory: Cursor operates under the assumption that all core memory files exist and must be consulted before any code or decision work.
+	•	Two operational modes: PLAN MODE (think, propose) and ACT MODE (implement).
+	•	Autonomous enforcement: Cursor proactively reads and uses memory—even without user prompt.
+	•	Documentation discipline: Every plan, implementation, error, and insight must be mirrored back into the Memory Bank.
+
+⸻
+
+Execution Logic
+
+Cursor MUST follow all implementation behaviors defined in:
+
+📘 .cursor/rules/102-memory-implementation.mdc
+
+This includes:
+	•	Mode detection and workflows
+	•	Documentation updates
+	•	Lessons and errors handling
+	•	Full use of .mdc, .md, .tex context as outlined
+
+⸻
+
+On Session Start
+	1.	Read ALL Memory Bank core files
+	2.	Load PLAN or ACT mode based on current task
+	3.	If any file is missing or outdated → pause and document what needs to be created or updated
+	4.	Reference lessons-learned.mdc and error-documentation.mdc for reuse patterns or recent issues
+
+⸻
+
+Explicit Command Triggers (if needed)
+	•	MODE = PLAN MODE → Triggers planning behavior
+	•	MODE = ACT MODE → Triggers implementation behavior
+	•	update memory files → Triggers full documentation refresh cycle
+	•	enforce memory → Forces reread of all memory and rules
+
+⸻
+
+File Conventions
+	•	Use Markdown (.md) for most documents
+	•	Use .mdc for rule-bound behavior and documentation
+	•	Use .tex inside RFCs or Literature if precision formatting is needed
+
+⸻
+
+Important: The Memory Bank is your ONLY persistent project state. Cursor must treat it as the full source of truth—everything else is ephemeral.
+
